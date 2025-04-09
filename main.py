@@ -80,6 +80,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--run_name', type=str, required=True)
+    parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--overshoot', type=float, default=0)
     args = parser.parse_args()
@@ -87,7 +88,7 @@ if __name__ == '__main__':
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    n_runs = 3
+    n_runs = 2
     for seed in range(n_runs):
         torch.manual_seed(11 * seed)
 
@@ -127,21 +128,40 @@ if __name__ == '__main__':
         
         # Model
         print('==> Building model..')
-        # net = VGG('VGG19')
-        # net = ResNet18()
-        # net = PreActResNet18()
-        # net = GoogLeNet()
-        # net = DenseNet121()
-        # net = ResNeXt29_2x64d()
-        # net = MobileNet()
-        # net = MobileNetV2()
-        # net = DPN92()
-        # net = ShuffleNetG2()
-        # net = SENet18()
-        # net = ShuffleNetV2(1)
-        # net = EfficientNetB0()
-        # net = RegNetX_200MF()
-        net = SimpleDLA()
+        if args.model == 'vgg':
+            net = VGG('VGG19')
+        elif args.model == 'resnet':
+            print("Using resnet")
+            net = ResNet18()
+        elif args.model == 'pre_act_resnet':
+            net = PreActResNet18()
+        elif args.model == 'googlenet':
+            net = GoogLeNet()
+        elif args.model == 'densenet':
+            net = DenseNet121()
+        elif args.model == 'resnex':
+            net = ResNeXt29_2x64d()
+        elif args.model == 'mobilenet':
+            net = MobileNet()
+        elif args.model == 'mobilenet_v2':
+            net = MobileNetV2()
+        elif args.model == 'dpn':
+            net = DPN92()
+        elif args.model == 'shufflenet':
+            net = ShuffleNetG2()
+        elif args.model == 'senet':
+            net = SENet18()
+        elif args.model == 'shufflenet_v2':
+            net = ShuffleNetV2(1)
+        elif args.model == 'efficientnet':
+            net = EfficientNetB0()
+        elif args.model == 'regnetx':
+            net = RegNetX_200MF()
+        elif args.model == 'dla':
+            net = SimpleDLA()
+        else:
+            raise Exception(f"Unsupported model name {args.model}")
+
         net = net.to(device)
         if device == 'cuda':
             net = torch.nn.DataParallel(net)
@@ -149,13 +169,13 @@ if __name__ == '__main__':
 
         criterion = nn.CrossEntropyLoss()
         if args.overshoot > 0:
-            optimizer = SGDO(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4, overshoot=args.overshoot, foreach=False)
+            optimizer = SGDO(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4, overshoot=args.overshoot)
         else:
             optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
             
-        stats = []
         epochs = 200
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+        stats = []
         for epoch in range(epochs):
             train_loss, train_acc = train(epoch)
             val_loss, val_acc = test(epoch)
